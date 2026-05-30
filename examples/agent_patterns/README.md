@@ -60,3 +60,11 @@ See the [`input_guardrails.py`](./input_guardrails.py) and [`output_guardrails.p
 You can pause runs for manual approval before executing sensitive tools. This is useful for operations like sending money, deleting data, or running destructive commands.
 
 See [`human_in_the_loop.py`](./human_in_the_loop.py) for the base approval flow and [`human_in_the_loop_custom_rejection.py`](./human_in_the_loop_custom_rejection.py) for run-level tool error formatting when approvals are rejected.
+
+## Contract-driven guardrails — adapted from "Contractual Skills: A GovernSpec Design Framework for Enterprise AI Agents"
+
+[`contract_guardrails.py`](./contract_guardrails.py) lets you declare a task's acceptance criteria — goal, input boundaries, output contract (schema), quality criteria, and forbidden content — as an inspectable `TaskContract`, then compile it into the SDK's existing `InputGuardrail` / `OutputGuardrail` primitives. Each check emits a structured `ContractReport` in the guardrail's `output_info`, so you can see exactly which clause failed (the paper's "checkability" benefit) — a structured basis for retry policies rather than opaque error codes.
+
+See [`output_guardrails.py`](./output_guardrails.py) for the call site: its agent's output guardrail is compiled from a `TaskContract` instead of a hand-written check.
+
+Contributed via [Remyx Recommendation](https://engine.remyx.ai).
