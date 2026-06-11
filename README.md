@@ -107,3 +107,15 @@ We also rely on the following tools to manage the project:
 - [MkDocs](https://github.com/squidfunk/mkdocs-material)
 
 We're committed to continuing to build the Agents SDK as an open source framework so others in the community can expand on our approach.
+
+## Attention Tool Gating — adapted from "Tool Attention Is All You Need: Dynamic Tool Gating and Lazy Schema Loading for Eliminating the MCP/Tools Tax in Scalable Agentic Workflows"
+
+Eagerly injecting every MCP tool schema on every turn inflates the prompt and the KV
+cache by thousands of tokens (the "MCP Tax"), even when only a few tools are relevant.
+`examples/mcp/tool_filter_example/attention_tool_gate.py` adds a dependency-free *tool
+attention* gate that scores each MCP tool's relevance to the current task and exposes
+only those above a threshold, so low-relevance schemas are never sent to the model
+("lazy schema loading"). It plugs into the existing `MCPServer(tool_filter=...)` contract
+as a `ToolFilterCallable` — see the wired-up `examples/mcp/tool_filter_example/main.py`.
+
+Contributed via [Remyx Recommendation](https://engine.remyx.ai).
