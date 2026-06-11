@@ -1,11 +1,32 @@
 import asyncio
 import os
 import shutil
+import sys
+from pathlib import Path
 from typing import Any, cast
 
 from agents import Agent, Runner, gen_trace_id, trace
 from agents.mcp import MCPServerStdio
-from agents.mcp.util import create_static_tool_filter
+from agents.mcp.util import ToolFilterCallable
+
+if __package__ in (None, ""):
+    # Allow running this file directly as a script.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from examples.mcp.tool_filter_example.attention_tool_gate import attention_tool_filter
+
+
+def build_attention_filter() -> ToolFilterCallable:
+    """Gate MCP tools by relevance to the task instead of a hand-maintained allowlist.
+
+    Tools whose name/description do not attend to the agent's task signal are dropped, so
+    their schemas are never injected into the prompt. This shrinks the per-turn "MCP Tax"
+    while still letting relevant tools (read/list) through. See ``attention_tool_gate``.
+    """
+    return attention_tool_filter(
+        min_score=0.15,
+        always_include=["list_directory"],
+    )
 
 
 async def run_with_auto_approval(agent: Agent[Any], message: str) -> str | None:
@@ -34,14 +55,12 @@ async def main():
             "cwd": samples_dir,
         },
         require_approval="always",
-        tool_filter=create_static_tool_filter(
-            allowed_tool_names=["read_file", "list_directory"],
-            blocked_tool_names=["write_file"],
-        ),
+        tool_filter=build_attention_filter(),
     ) as server:
         agent = Agent(
             name="MCP Assistant",
             instructions=(
+                "Read and list files in the allowed directory. "
                 "Use only the available filesystem tools. "
                 "All file paths should be absolute paths inside the allowed directory. "
                 "If a user asks for an action that requires an unavailable tool, "
