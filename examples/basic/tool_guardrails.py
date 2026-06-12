@@ -12,6 +12,18 @@ from agents import (
     tool_input_guardrail,
     tool_output_guardrail,
 )
+from examples.basic.repeat_attempt_gate import (
+    AttemptLog,
+    make_outcome_recorder,
+    make_repeat_attempt_gate,
+)
+
+# Append-only attempt log shared across this session. The pre-action gate (adapted
+# from PROJECTMEM) consults it so the agent never repeats a tool call that already
+# failed, and the outcome recorder writes each result back into it.
+attempt_log = AttemptLog()
+repeat_attempt_gate = make_repeat_attempt_gate(attempt_log)
+attempt_outcome_recorder = make_outcome_recorder(attempt_log)
 
 
 @function_tool
@@ -101,7 +113,10 @@ def reject_phone_numbers(data: ToolOutputGuardrailData) -> ToolGuardrailFunction
 
 
 # Apply guardrails to tools
-send_email.tool_input_guardrails = [reject_sensitive_words]
+# send_email gains the pre-action gate plus its outcome recorder, so a repeated
+# email that already failed is short-circuited before it runs again.
+send_email.tool_input_guardrails = [reject_sensitive_words, repeat_attempt_gate]
+send_email.tool_output_guardrails = [attempt_outcome_recorder]
 get_user_data.tool_output_guardrails = [block_sensitive_output]
 get_contact_info.tool_output_guardrails = [reject_phone_numbers]
 
