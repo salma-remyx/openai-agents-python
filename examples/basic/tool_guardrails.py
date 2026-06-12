@@ -12,6 +12,17 @@ from agents import (
     tool_input_guardrail,
     tool_output_guardrail,
 )
+from examples.basic.action_memory_gate import ActionMemory, make_pre_action_gate
+
+# Event-sourced memory of prior actions. In a real project this would be loaded
+# from a persisted log; here we pre-seed it with one fix that already failed so
+# the pre-action gate has something to govern. (Adapted from PROJECTMEM.)
+action_memory = ActionMemory()
+action_memory.record_failure(
+    'apply_fix::{"description":"retry the request","file":"client.py"}',
+    summary="Retrying the request did not resolve the timeout.",
+)
+pre_action_gate = make_pre_action_gate(action_memory)
 
 
 @function_tool
@@ -42,6 +53,12 @@ def get_contact_info(user_id: str) -> dict[str, str]:
         "email": "jane@example.com",
         "phone": "555-1234",
     }
+
+
+@function_tool
+def apply_fix(file: str, description: str) -> str:
+    """Apply a code fix to a file in the workspace."""
+    return f"Applied fix to {file}: {description}"
 
 
 @tool_input_guardrail
@@ -104,11 +121,13 @@ def reject_phone_numbers(data: ToolOutputGuardrailData) -> ToolGuardrailFunction
 send_email.tool_input_guardrails = [reject_sensitive_words]
 get_user_data.tool_output_guardrails = [block_sensitive_output]
 get_contact_info.tool_output_guardrails = [reject_phone_numbers]
+# The pre-action gate consults the action-memory log before apply_fix runs.
+apply_fix.tool_input_guardrails = [pre_action_gate]
 
 agent = Agent(
     name="Secure Assistant",
     instructions="You are a helpful assistant with access to email and user data tools.",
-    tools=[send_email, get_user_data, get_contact_info],
+    tools=[send_email, get_user_data, get_contact_info, apply_fix],
 )
 
 
@@ -144,6 +163,16 @@ async def main():
         print("4. Rejecting function tool output containing phone numbers:")
         result = await Runner.run(agent, "Get contact info for user456")
         print(f"❌ Guardrail rejected function tool output: {result.final_output}\n")
+    except Exception as e:
+        print(f"Error: {e}\n")
+
+    try:
+        # Example 5: Pre-action gate blocks repeating a fix that already failed.
+        print("5. Attempting a fix that the action-memory log records as failed:")
+        result = await Runner.run(agent, "Fix the timeout in client.py by retrying the request.")
+        print(
+            f"❌ Pre-action gate steered the agent away from a known dead end: {result.final_output}\n"
+        )
     except Exception as e:
         print(f"Error: {e}\n")
 

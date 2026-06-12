@@ -107,3 +107,20 @@ We also rely on the following tools to manage the project:
 - [MkDocs](https://github.com/squidfunk/mkdocs-material)
 
 We're committed to continuing to build the Agents SDK as an open source framework so others in the community can expand on our approach.
+
+## Action-memory pre-action gate — adapted from PROJECTMEM: A Local-First, Event-Sourced Memory and Judgment Layer for AI Coding Agents
+
+`examples/basic/action_memory_gate.py` adds a small, dependency-free
+"Memory-as-Governance" layer for agents: an append-only, event-sourced log of
+typed actions (attempts, failures, fixes, fragile-file notes) plus a
+deterministic **pre-action gate**. Wired into `examples/basic/tool_guardrails.py`
+as a `tool_input_guardrail`, the gate inspects each tool call before it runs and
+rejects it when the action exactly matches a fix that already failed (and was not
+since fixed) or targets a file flagged fragile — so a coding or sandbox agent
+stops re-deriving dead ends instead of burning a turn on them.
+
+We scope this to the in-session governance behavior (typed log, deterministic
+action signature, gate); the paper's full MCP server, CLI surface, and
+offline-summary projections are intentionally left out.
+
+Contributed via [Remyx Recommendation](https://engine.remyx.ai).
