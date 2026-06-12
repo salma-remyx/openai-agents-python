@@ -107,3 +107,16 @@ We also rely on the following tools to manage the project:
 - [MkDocs](https://github.com/squidfunk/mkdocs-material)
 
 We're committed to continuing to build the Agents SDK as an open source framework so others in the community can expand on our approach.
+
+## Repeat-attempt gate — adapted from PROJECTMEM: A Local-First, Event-Sourced Memory and Judgment Layer for AI Coding Agents
+
+`examples/basic/repeat_attempt_gate.py` adds a deterministic *pre-action gate* over
+an append-only log of tool attempts. Each tool call and its outcome are recorded;
+before a tool runs, the gate consults the log and short-circuits any call whose exact
+arguments already failed earlier in the session — so an agent never burns another turn
+repeating a fix that is known to be broken. This applies the paper's *Memory-as-Governance*
+idea to the SDK's existing tool-guardrail hooks, and is wired into the
+`examples/basic/tool_guardrails.py` `send_email` tool. The paper's MCP server, CLI, and
+on-disk projection are intentionally out of scope here.
+
+Contributed via [Remyx Recommendation](https://engine.remyx.ai).
