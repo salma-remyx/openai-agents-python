@@ -5,7 +5,33 @@ from typing import Any, cast
 
 from agents import Agent, Runner, gen_trace_id, trace
 from agents.mcp import MCPServerStdio
-from agents.mcp.util import create_static_tool_filter
+from agents.mcp.util import ToolFilter, create_static_tool_filter
+
+from .causal_tool_filter import ToolContract, create_causal_tool_filter
+
+# Precondition-effect contracts for a handful of filesystem tools. The goal fact
+# "file_contents_known" is reachable only by first discovering a path
+# ("target_path_known") via list_directory, so CMTF exposes list_directory first
+# and read_file only once a path is known -- never the premature write_file.
+FILESYSTEM_TOOL_CONTRACTS = [
+    ToolContract(name="list_directory", effects={"target_path_known"}),
+    ToolContract(
+        name="read_file",
+        preconditions={"target_path_known"},
+        effects={"file_contents_known"},
+    ),
+    ToolContract(
+        name="write_file",
+        preconditions={"content_ready"},
+        effects={"file_written"},
+    ),
+]
+
+
+def build_causal_filter() -> ToolFilter:
+    """Build a CMTF dynamic filter over the filesystem tool contracts."""
+
+    return create_causal_tool_filter(FILESYSTEM_TOOL_CONTRACTS)
 
 
 async def run_with_auto_approval(agent: Agent[Any], message: str) -> str | None:
@@ -26,6 +52,16 @@ async def main():
     samples_dir = os.path.join(current_dir, "sample_files")
     target_path = os.path.join(samples_dir, "test.txt")
 
+    # Set MCP_TOOL_FILTER=causal to expose only the causally sufficient
+    # next-step tool (CMTF) instead of a fixed allow/block list.
+    if os.environ.get("MCP_TOOL_FILTER") == "causal":
+        tool_filter: ToolFilter = build_causal_filter()
+    else:
+        tool_filter = create_static_tool_filter(
+            allowed_tool_names=["read_file", "list_directory"],
+            blocked_tool_names=["write_file"],
+        )
+
     async with MCPServerStdio(
         name="Filesystem Server with filter",
         params={
@@ -34,10 +70,7 @@ async def main():
             "cwd": samples_dir,
         },
         require_approval="always",
-        tool_filter=create_static_tool_filter(
-            allowed_tool_names=["read_file", "list_directory"],
-            blocked_tool_names=["write_file"],
-        ),
+        tool_filter=tool_filter,
     ) as server:
         agent = Agent(
             name="MCP Assistant",
