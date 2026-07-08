@@ -1,3 +1,2 @@
 checks:
-  command: "pip install -e '.[dev]' && pytest tests/mcp/test_causal_tool_filter.py -q"
-# rerun: pick up updated eval runner (command-mode + top-level exit_code)
+  command: "python -m pip install -q pytest pytest-asyncio pytest-mock && python -m pytest tests/mcp/test_causal_tool_filter.py -q"
