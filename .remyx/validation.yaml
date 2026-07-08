@@ -1,0 +1,2 @@
+checks:
+  command: "pip install -e '.[dev]' && pytest tests/mcp/test_causal_tool_filter.py -q"
