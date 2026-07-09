@@ -17,8 +17,15 @@ Emits a single JSON line on stdout (the runner parses it into quality metrics).
 from __future__ import annotations
 
 import json
+import os
 import sys
 from dataclasses import dataclass, field
+
+# When run as `python eval/tool_filter_bench.py`, Python puts eval/ on sys.path
+# (the script's dir), not the repo root — so `import examples…` would fail.
+# Put the repo root (this file's parent's parent) first so the feature branch's
+# examples package is importable.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # The filesystem tool set exercised by the example (mirrors the PR's tests).
 FS_TOOLS = ["list_directory", "read_file", "write_file", "get_file_info"]
