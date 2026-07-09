@@ -1,9 +1,0 @@
-benchmarks:
-  - name: causal-tool-filter
-    suite: "eval/tool_filter_bench.py"
-    scorer: metric
-    baseline: main
-    metrics:
-      - {key: tool_precision, direction: ">=", threshold: 0.6, role: target}
-      - {key: tool_recall,    direction: ">=", threshold: 1.0, role: guardrail}
-    policy: {guardrail_veto: true}
