@@ -1,0 +1,15 @@
+benchmarks:
+  - suite: "tests/mcp/eval_causal_tool_filter_precision.py"
+    scorer: avg_extraneous_tool_rate
+    baseline: main
+    metrics:
+      - name: avg_extraneous_tool_rate
+        role: target
+        direction: decrease
+        threshold: 0.05
+      - name: necessary_tool_coverage
+        role: guardrail
+        direction: increase
+        threshold: 0.0
+    policy:
+      guardrail_veto: true
