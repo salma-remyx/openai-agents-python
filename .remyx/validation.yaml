@@ -1,5 +1,5 @@
 benchmarks:
-  - suite: "tests/mcp/eval_causal_tool_filter_precision.py"
+  - suite: "command:python tests/mcp/eval_causal_tool_filter_precision.py"
     scorer: avg_extraneous_tool_rate
     baseline: main
     metrics:
